@@ -3,53 +3,212 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lançar Despesa</title>
+  <title>Controle de Despesas</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: auto; background: #f5f5f5; }
-    h2 { text-align: center; }
-    label { display: block; margin-top: 12px; font-weight: bold; }
-    input, select { width: 100%; padding: 10px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
-    button { width: 100%; padding: 14px; margin-top: 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 16px; max-width: 600px; margin: auto; background: #f0f2f5; color: #333; }
+    h2 { text-align: center; margin-bottom: 20px; }
+    label { display: block; margin-top: 12px; font-weight: 600; font-size: 14px; }
+    input, select { width: 100%; padding: 12px; margin-top: 4px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; background: white; }
+    button { width: 100%; padding: 14px; margin-top: 20px; background: #4CAF50; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
     button:hover { background: #45a049; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .tabs button { flex: 1; margin-top: 0; background: #d8dce0; color: #444; font-size: 15px; }
+    .tabs button.active { background: #4CAF50; color: white; }
+    .card { background: white; padding: 18px; border-radius: 10px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .valor-grande { font-size: 30px; font-weight: 700; margin: 6px 0; }
+    .verde { color: #2e7d32; }
+    .amarelo { color: #ef6c00; }
+    .vermelho { color: #c62828; }
+    .barra { height: 22px; background: #e8eaed; border-radius: 11px; overflow: hidden; margin-top: 12px; }
+    .barra-preenchida { height: 100%; transition: width 0.5s ease; }
+    .hidden { display: none; }
+    .linha-info { display: flex; justify-content: space-between; margin-top: 8px; font-size: 14px; color: #555; }
+    .msg-status { text-align: center; padding: 40px 20px; color: #888; }
+    ul { padding-left: 20px; margin: 8px 0; }
+    li { margin: 4px 0; }
+    .titulo-card { font-size: 13px; text-transform: uppercase; color: #888; letter-spacing: 0.5px; margin-bottom: 4px; }
   </style>
 </head>
 <body>
-  <h2>Nova Despesa</h2>
-  <form id="despesaForm">
-    <label>Descrição:</label>
-    <input type="text" name="Descrição" required>
+  <h2>💰 Controle de Despesas</h2>
 
-    <label>Valor:</label>
-    <input type="number" step="0.01" name="Valor" required>
+  <div class="tabs">
+    <button id="tabLancar" class="active" onclick="mostrarAba('lancar')">Lançar</button>
+    <button id="tabDash" onclick="mostrarAba('dash')">Dashboard</button>
+  </div>
 
-    <label>Categoria:</label>
-    <select name="Categoria">
-      <option>Alimentação</option>
-      <option>Transporte</option>
-      <option>Moradia</option>
-      <option>Lazer</option>
-      <option>Saúde</option>
-      <option>Outros</option>
-    </select>
+  <!-- ABA LANÇAR -->
+  <div id="abaLancar">
+    <form id="despesaForm">
+      <label>Descrição:</label>
+      <input type="text" name="Descrição" required>
 
-    <button type="submit">Salvar</button>
-  </form>
+      <label>Valor:</label>
+      <input type="number" step="0.01" name="Valor" required>
+
+      <label>Categoria:</label>
+      <select name="Categoria">
+        <option>Alimentação</option>
+        <option>Transporte</option>
+        <option>Moradia</option>
+        <option>Lazer</option>
+        <option>Saúde</option>
+        <option>Outros</option>
+      </select>
+
+      <button type="submit">Salvar</button>
+    </form>
+  </div>
+
+  <!-- ABA DASHBOARD -->
+  <div id="abaDash" class="hidden">
+    <div class="card">
+      <label>Salário do mês (R$):</label>
+      <input type="number" id="salario" step="0.01" placeholder="3000" onchange="salvarConfig()">
+
+      <label>% máxima que quero gastar:</label>
+      <input type="number" id="percentual" step="1" value="80" onchange="salvarConfig()">
+
+      <button onclick="carregarDashboard()">🔄 Atualizar</button>
+    </div>
+
+    <div id="resultado">
+      <div class="msg-status">Clique em "Atualizar" para carregar os dados.</div>
+    </div>
+  </div>
 
   <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
 
   <script>
-    const form = document.getElementById('despesaForm');
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbwlO12AVO8BJhPjQCH2pl-xez5PoE5rKDyb4Mwvmr-q6gHCfuA_b4zakZ1dzuDcbN_q3Q/exec';
+    // ⚠️ COLE AQUI A URL DO SEU APPS SCRIPT (termina em /exec)
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbyh1Y74PjPEp4eXdMxFfs9PkHhN0z-_xNQ1VzW4hK8RfZH5DaE57NFJyRaKNZykHytuHw/exec';
 
+    // ========== ABA LANÇAR ==========
+    const form = document.getElementById('despesaForm');
     form.addEventListener('submit', e => {
       e.preventDefault();
       form.target = 'hidden_iframe';
       form.method = 'POST';
       form.action = scriptURL;
       form.submit();
-      alert('Despesa enviada! Confira a planilha.');
+      alert('✅ Despesa enviada!');
       setTimeout(() => { form.reset(); form.target = ''; }, 1000);
     });
+
+    // ========== ABAS ==========
+    function mostrarAba(aba) {
+      document.getElementById('abaLancar').classList.toggle('hidden', aba !== 'lancar');
+      document.getElementById('abaDash').classList.toggle('hidden', aba !== 'dash');
+      document.getElementById('tabLancar').classList.toggle('active', aba === 'lancar');
+      document.getElementById('tabDash').classList.toggle('active', aba === 'dash');
+      if (aba === 'dash') carregarDashboard();
+    }
+
+    // ========== CONFIG (localStorage) ==========
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('salario').value = localStorage.getItem('salario') || '';
+      document.getElementById('percentual').value = localStorage.getItem('percentual') || '80';
+    });
+
+    function salvarConfig() {
+      localStorage.setItem('salario', document.getElementById('salario').value);
+      localStorage.setItem('percentual', document.getElementById('percentual').value);
+    }
+
+    // ========== LEITURA DOS DADOS (JSONP) ==========
+    function carregarDados(callback) {
+      const callbackName = 'jsonp_' + Date.now();
+      window[callbackName] = function(data) {
+        callback(data);
+        delete window[callbackName];
+        document.body.removeChild(script);
+      };
+      const script = document.createElement('script');
+      script.src = scriptURL + '?callback=' + callbackName;
+      script.onerror = function() {
+        document.getElementById('resultado').innerHTML = '<div class="msg-status">❌ Erro ao carregar dados.</div>';
+      };
+      document.body.appendChild(script);
+    }
+
+    // ========== DASHBOARD ==========
+    function carregarDashboard() {
+      const salario = parseFloat(document.getElementById('salario').value) || 0;
+      const percentual = parseFloat(document.getElementById('percentual').value) || 80;
+
+      if (salario <= 0) {
+        document.getElementById('resultado').innerHTML = '<div class="msg-status">⚠️ Digite seu salário para ver o dashboard.</div>';
+        return;
+      }
+
+      document.getElementById('resultado').innerHTML = '<div class="msg-status">⏳ Carregando...</div>';
+
+      carregarDados(function(dados) {
+        const teto = salario * (percentual / 100);
+        const agora = new Date();
+        const mesAtual = agora.getMonth();
+        const anoAtual = agora.getFullYear();
+
+        let totalMes = 0;
+        const porCategoria = {};
+
+        (dados || []).forEach(d => {
+          const data = new Date(d.Data);
+          if (data.getMonth() === mesAtual && data.getFullYear() === anoAtual) {
+            const valor = parseFloat(d.Valor) || 0;
+            totalMes += valor;
+            const cat = d.Categoria || 'Outros';
+            porCategoria[cat] = (porCategoria[cat] || 0) + valor;
+          }
+        });
+
+        const restante = teto - totalMes;
+        const percentualUsado = teto > 0 ? (totalMes / teto) * 100 : 0;
+
+        let corClasse = 'verde';
+        let corBarra = '#4CAF50';
+        if (percentualUsado > 100) { corClasse = 'vermelho'; corBarra = '#c62828'; }
+        else if (percentualUsado > 80) { corClasse = 'amarelo'; corBarra = '#ef6c00'; }
+
+        const mesNome = agora.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+        let html = `
+          <div class="card">
+            <div class="titulo-card">Gasto em ${mesNome}</div>
+            <div class="valor-grande ${corClasse}">R$ ${totalMes.toFixed(2).replace('.', ',')}</div>
+            <div class="barra">
+              <div class="barra-preenchida" style="width: ${Math.min(percentualUsado,100)}%; background: ${corBarra}"></div>
+            </div>
+            <div class="linha-info">
+              <span>${percentualUsado.toFixed(1)}% do teto</span>
+              <span>Teto: R$ ${teto.toFixed(2).replace('.', ',')}</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="titulo-card">${restante >= 0 ? 'Você ainda pode gastar' : 'Você passou do teto'}</div>
+            <div class="valor-grande ${restante >= 0 ? 'verde' : 'vermelho'}">
+              R$ ${Math.abs(restante).toFixed(2).replace('.', ',')}
+            </div>
+          </div>
+        `;
+
+        const cats = Object.entries(porCategoria).sort((a,b) => b[1] - a[1]);
+        if (cats.length > 0) {
+          html += `
+            <div class="card">
+              <div class="titulo-card">Gastos por categoria</div>
+              <ul>
+                ${cats.map(([c, v]) => `<li><b>${c}:</b> R$ ${v.toFixed(2).replace('.', ',')}</li>`).join('')}
+              </ul>
+            </div>
+          `;
+        }
+
+        document.getElementById('resultado').innerHTML = html;
+      });
+    }
   </script>
 </body>
 </html>
