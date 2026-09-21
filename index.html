@@ -1,49 +1,30 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Lançar Despesa</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: auto; }
-    input, select { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; }
-    button { width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; font-size: 16px; }
-  </style>
-</head>
-<body>
-  <h2>Nova Despesa</h2>
-  <form id="despesaForm">
-    <label>Descrição:</label>
-    <input type="text" name="Descrição" required>
-    
-    <label>Valor:</label>
-    <input type="number" step="0.01" name="Valor" required>
-    
-    <label>Categoria:</label>
-    <select name="Categoria">
-      <option>Alimentação</option>
-      <option>Transporte</option>
-      <option>Moradia</option>
-      <option>Lazer</option>
-      <option>Outros</option>
-    </select>
-    
-    <button type="submit">Salvar</button>
-  </form>
+<script>
+  const form = document.getElementById('despesaForm');
+  // COLE AQUI A URL DO SEU APPS SCRIPT
+  const scriptURL = 'https://script.google.com/macros/s/AKfycbze8WsbW-inPjxJR3YkGda8nyMs4gtovSwVx8XR3gZMSxIUFM_gJ6dq-6Z_dKBgeqig/exec';
 
-  <script>
-    const form = document.getElementById('despesaForm');
-    // COLE AQUI A URL DO SEU APPS SCRIPT
-    const scriptURL = 'https://script.google.com/macros/library/d/18hRwMTSGM4-9oKxQoDbj9Zt_jvkn5MPmgiBPtS9Usq8IqH8yNhLk56r5/2';
+  form.addEventListener('submit', e => {
+    e.preventDefault(); // Impede o envio padrão
 
-    form.addEventListener('submit', e => {
-      e.preventDefault();
-      fetch(scriptURL, { method: 'POST', body: new FormData(form)})
-        .then(response => {
-          alert('Despesa salva com sucesso!');
-          form.reset();
-        })
-        .catch(error => alert('Erro ao salvar. Tente novamente.'));
-    });
-  </script>
-</body>
-</html>
+    // Cria um iframe invisível para receber a resposta
+    const iframe = document.createElement('iframe');
+    iframe.name = 'hidden_iframe';
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+
+    // Aponta o formulário para o iframe
+    form.target = 'hidden_iframe';
+    form.method = 'POST';
+    form.action = scriptURL;
+
+    // Envia o formulário (sem CORS, pois é um submit normal)
+    form.submit();
+
+    // Feedback para o usuário
+    alert('Despesa enviada! Aguarde alguns segundos e confira a planilha.');
+    form.reset();
+
+    // Remove o iframe depois de um tempo
+    setTimeout(() => document.body.removeChild(iframe), 5000);
+  });
+</script>
